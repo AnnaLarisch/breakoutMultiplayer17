@@ -35,7 +35,7 @@ var ballInfo = {
   ball_velocity_y: 150,
   ball_velocity_x: 0,
   ball_position_x: 196,
-  ball_position_y: 400,
+  ball_position_y: 401,
   ball_bounce: 50,
   ball_status: "default"
 }
