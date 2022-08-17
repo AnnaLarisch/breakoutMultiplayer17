@@ -179,8 +179,8 @@ io.on('connection', function (socket) {
 });
 
 
-// Server listens on port 8081 for join requests
+// Server listens on port 80 for join requests
 
-server.listen(8081, function () {
+server.listen(80, function () {
   console.log(`Listening on ${server.address().port}`);
 });
