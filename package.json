@@ -1,11 +1,12 @@
 {
   "name": "breakoutmultiplayer17",
   "version": "1.0.0",
+  "type": "module",
   "description": "",
-  "main": "server.js",
+  "main": "server.cjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.cjs"
   },
   "author": "",
   "license": "ISC",
@@ -15,4 +16,5 @@
     "socket.io": "^4.5.1",
     "typescript": "^4.7.4"
   }
+
 }
