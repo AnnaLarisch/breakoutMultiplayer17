@@ -6,10 +6,15 @@ export default class StartScene extends Phaser.Scene {
       super({ key: 'StartScene' });
     }
     preload() {
-        this.load.image('button_ready', 'assets/StartScene/button_ready.png');
-        this.load.image('button_ready_active', 'assets/StartScene/button_ready_active.png');
-        this.load.image('ui_element_waiting', 'assets/StartScene/ui_element_waiting.png');
-        this.load.image('title_gastro_cosmos', 'assets/StartScene/title_gastro_cosmos.png');
+       // Start Screen UI
+    
+    this.load.image('black_screen', 'assets/black_screen.png');
+
+    this.load.image('title_gastro_cosmos', 'assets/StartScene/title_gastro_cosmos.png')
+    this.load.image('button_ready', 'assets/StartScene/button_ready.png')
+    this.load.image('button_ready_active', 'assets/StartScene/button_ready_active.png')
+    this.load.image('ui_element_waiting', 'assets/StartScene/ui_element_waiting.png')
+    this.load.image('ui_element_waiting_for_opponent', 'assets/StartScene/ui_element_waiting_for_opponent.png')
 
 
     }
@@ -17,7 +22,7 @@ export default class StartScene extends Phaser.Scene {
         startgamebutton = self.physics.add.sprite(100, 400, 'start_game_button').setOrigin(0,0).setInteractive();
         startgamebutton.on('pointerup', function (pointer){
             startgamebutton.setPosition(-300, -300);
-            self.socket.emit('startGameServer', myCharacterConfig);
+            socket.emit('startGameServer', myCharacterConfig);
           }, this);
         self = this;
 

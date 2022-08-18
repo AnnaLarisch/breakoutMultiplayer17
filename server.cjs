@@ -13,19 +13,16 @@ app.get('/', function (req, res) {
 
 // Game Configuration
 
-//import CONFIG from './public/src/config';
 
 // Host is the first player that joins the server. Takes care of game logic.
 var host = {
   playerID: 0,
   socketID: "empty",
   status: "default",
-  spawnX: 196,//CONFIG.DEFAULT_SPAWN_X_HOST,
-  spawnY: 200,//CONFIG.DEFAULT_SPAWN_X_HOST,
-  positionX: 196,//CONFIG.DEFAULT_SPAWN_X_HOST,
-  positionY: 200,//CONFIG.DEFAULT_SPAWN_Y_HOST,
+  positionX: 0,//CONFIG.DEFAULT_SPAWN_X_HOST,
+  positionY: 0,//CONFIG.DEFAULT_SPAWN_Y_HOST,
   isPresent: false,
-  isHost: false,
+  isHost: true,
   isGuest: false
 };
 
@@ -34,13 +31,11 @@ var guest = {
   playerID: 1,
   socketID: "empty",
   status: "default",
-  spawnX: 196,//CONFIG.DEFAULT_SPAWN_X_GUEST,
-  spawnY: 600,//CONFIG.DEFAULT_SPAWN_X_GUEST,
-  positionX: 196,//CONFIG.DEFAULT_SPAWN_X_GUEST,
-  positionY: 600,//CONFIG.DEFAULT_SPAWN_Y_GUEST,
+  positionX: 0,//CONFIG.DEFAULT_SPAWN_X_GUEST,
+  positionY: 0,//CONFIG.DEFAULT_SPAWN_Y_GUEST,
   isPresent: false,
   isHost: false,
-  isGuest: false
+  isGuest: true
 };
 
 // Ball is the most important game object.
@@ -67,15 +62,12 @@ io.on('connection', function (socket) {
   // Both players join the "game room"
   socket.join('game');
 
-
   // Host join
   if (!host.isPresent){
     host.isPresent = true;
-    host.isHost = true;
     host.socketID = socket.id;
 
     console.log('User ',host.playerID,' with the ID: ',host.socketID,' has connected. This user will be the host.');
-    console.log("This user spawned at: X: ",host.spawnX,', Y: ',host.spawnY);
 
     // Spawn Host and Guest Character for Host
 
@@ -85,20 +77,15 @@ io.on('connection', function (socket) {
   // Guest join
   else if (host.isPresent && !guest.isPresent){
     guest.isPresent = true;
-    guest.isGuest = true;
     guest.socketID = socket.id,
 
     console.log('User ',guest.playerID,' with the ID: ',guest.socketID,' has connected. This user will be the guest.');
-    console.log("This user spawned at: X: ",guest.spawnX,', Y:',guest.spawnY);
-    io.in('game').emit('secondConnection');
 
     // Spawn Guest and Host Character for Guest
 
-   
+    io.in('game').emit('playerConnectedCounter');
     socket.emit('characterSpawn', guest, host, ball);
-    //io.in('game').emit('startGame');
 
-    // Tell both players to start the game
     }
 
 

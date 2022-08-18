@@ -1,3 +1,7 @@
+import Global from '../global.js';
+import CONFIG from '../config.js';
+
+
 var cursors;
 var self;
 
@@ -37,8 +41,6 @@ var myCharacterConfig = {
   playerID: -1,
   socketID: "empty",
   status: "default",
-  spawnX: 0,
-  spawnY: 0,
   positionX: 0,
   positionY: 0,
   isPresent: false,
@@ -51,8 +53,6 @@ var enemyCharacterConfig = {
   playerID: -1,
   socketID: "empty",
   status: "default",
-  spawnX: 0,
-  spawnY: 0,
   positionX: 0,
   positionY: 0,
   isPresent: false,
@@ -105,6 +105,7 @@ var ui_element_you_won_lost;
 var hostLost = false;
 
 var playersConnected;
+
 
 
 export default class GameScene extends Phaser.Scene {
@@ -179,7 +180,7 @@ export default class GameScene extends Phaser.Scene {
     // Socket Communication
 
     self = this;
-    this.socket = io();
+    Global.socket = io();
 
     // Randomly choose player with first serve
     if (getRandomInt(0, 1) == 0){
@@ -194,11 +195,11 @@ export default class GameScene extends Phaser.Scene {
 
 
 
-    myCharacterSprite = self.physics.add.sprite(196, 200, 'ship_large_blue').setOrigin(0,0).setScale(0.5);
+    myCharacterSprite = self.physics.add.sprite(CONFIG.DEFAULT_SPAWN_X_HOST, CONFIG.DEFAULT_SPAWN_Y_HOST, 'ship_large_blue').setOrigin(0,0).setScale(0.5);
     myCharacterSprite.setCollideWorldBounds(true);
     myCharacterSprite.setImmovable(true);
 
-    enemyCharacterSprite = self.physics.add.sprite(196, 600, 'ship_large_red').setOrigin(0,0).setScale(0.5);
+    enemyCharacterSprite = self.physics.add.sprite(CONFIG.DEFAULT_SPAWN_X_GUEST, CONFIG.DEFAULT_SPAWN_Y_GUEST, 'ship_large_red').setOrigin(0,0).setScale(0.5);
     enemyCharacterSprite.setCollideWorldBounds(true);
     enemyCharacterSprite.setImmovable(true);
 
@@ -245,7 +246,7 @@ export default class GameScene extends Phaser.Scene {
       if (!readyForGame) {
         button_ready.setTexture('button_ready_active');
         ui_element_waiting_for_opponent = self.physics.add.sprite(0, 420, 'ui_element_waiting_for_opponent').setOrigin(0,0);
-        self.socket.emit('startGameServer', myCharacterConfig);
+        Global.socket.emit('startGameServer', myCharacterConfig);
         readyForGame = true;
       }
       
@@ -258,30 +259,39 @@ export default class GameScene extends Phaser.Scene {
 
     // Sockets 
 
-    self.socket.on('characterSpawn', function (myCharacter, enemyCharacter, ball) {
+    Global.socket.on('characterSpawn', function (myCharacter, enemyCharacter, ball) {
+
       myCharacterConfig = myCharacter;
-      myCharacterSprite.setPosition(myCharacterConfig.spawnX, myCharacterConfig.spawnY).setOrigin(0,0);
       enemyCharacterConfig = enemyCharacter;
-      enemyCharacterSprite.setPosition(enemyCharacterConfig.spawnX, enemyCharacterConfig.spawnY).setOrigin(0,0);
-      ballConfig = ball;
-      self.socket.emit('playerMovementServer', myCharacterSprite, myCharacterConfig, enemyCharacterSprite, enemyCharacterConfig);
       if (myCharacterConfig.isHost){
+        myCharacterConfig.positionX = CONFIG.DEFAULT_SPAWN_X_HOST;
+        myCharacterConfig.positionY = CONFIG.DEFAULT_SPAWN_Y_HOST;
+        enemyCharacterConfig.positionX = CONFIG.DEFAULT_SPAWN_X_GUEST;
+        enemyCharacterConfig.positionY = CONFIG.DEFAULT_SPAWN_Y_GUEST;
         myCharacterSprite.setTexture("ship_large_blue");
         enemyCharacterSprite.setTexture("ship_large_red");
       }
       else{
+        myCharacterConfig.positionX = CONFIG.DEFAULT_SPAWN_X_GUEST;
+        myCharacterConfig.positionY = CONFIG.DEFAULT_SPAWN_Y_GUEST;
+        enemyCharacterConfig.positionX = CONFIG.DEFAULT_SPAWN_X_HOST;
+        enemyCharacterConfig.positionY = CONFIG.DEFAULT_SPAWN_Y_HOST;
         myCharacterSprite.setTexture("ship_large_red");
         enemyCharacterSprite.setTexture("ship_large_blue");
       }
+      myCharacterSprite.setPosition(myCharacterConfig.positionX, myCharacterConfig.positionY).setOrigin(0,0);
+      enemyCharacterSprite.setPosition(enemyCharacterConfig.positionX, enemyCharacterConfig.positionY).setOrigin(0,0);
+      ballConfig = ball;
 
+      Global.socket.emit('playerMovementServer', myCharacterSprite, myCharacterConfig, enemyCharacterSprite, enemyCharacterConfig);
     });
 
-    self.socket.on('secondConnection', function (){
+    Global.socket.on('playerConnectedCounter', function (){
       playersConnected.setText("Connected: 2/2");
     });
 
 
-    self.socket.on('startGame', function (){
+    Global.socket.on('startGame', function (){
       setTimeout(function(){ 
         black_screen.setActive(false);
         black_screen.setVisible(false);
@@ -317,7 +327,7 @@ export default class GameScene extends Phaser.Scene {
     
   });
 
-    self.socket.on('gameOver', function (isHost){
+    Global.socket.on('gameOver', function (isHost){
      
       gameOver = true;
       ballSprite.setVelocityX(0);
@@ -342,17 +352,17 @@ export default class GameScene extends Phaser.Scene {
 
     });
 
-    self.socket.on('playerMovementClient', function (movedCharacterConfig) {
+    Global.socket.on('playerMovementClient', function (movedCharacterConfig) {
       enemyCharacterConfig = movedCharacterConfig;
       enemyCharacterSprite.setPosition(enemyCharacterConfig.positionX, enemyCharacterConfig.positionY);
     });
 
-    self.socket.on('ballMovementGuest', function(host_ball){
+    Global.socket.on('ballMovementGuest', function(host_ball){
       ballSprite.x = host_ball.x
       ballSprite.y = host_ball.y
     });
 
-    self.socket.on('pauseGame', function(){
+    Global.socket.on('pauseGame', function(){
       self.scene.pause("GameScene");
       setTimeout(function(){ 
       self.scene.get("GameScene").scene.setVisible(false);
@@ -362,26 +372,26 @@ export default class GameScene extends Phaser.Scene {
       
     });
 
-    self.socket.on('startGameScene', function(){
+    Global.socket.on('startGameScene', function(){
       self.scene.launch("StartScene");
       self.scene.get("StartScene").scene.setVisible(true);
       self.scene.get("GameScene").scene.setVisible(false);
       self.scene.pause("GameScene");
     });
 
-    self.socket.on('remove', function (player) {
+    Global.socket.on('remove', function (player) {
       enemyCharacterSprite.indexOf(player).destroy();
     });
 
 
-    self.socket.on('guestServe', function (bool) {
+    Global.socket.on('guestServe', function (bool) {
       guestServe = bool;
     });
-    self.socket.on('tellHostServe', function (bool) {
+    Global.socket.on('tellHostServe', function (bool) {
       ballCanBeLaunched = bool;
     });
 
-    self.socket.on('changeHeartGuest', function(changedHeart, isHostHeart){
+    Global.socket.on('changeHeartGuest', function(changedHeart, isHostHeart){
       if (isHostHeart){
         heart_host.setTexture(changedHeart.textureKey);
       }
@@ -390,7 +400,7 @@ export default class GameScene extends Phaser.Scene {
       }
     });
 
-    self.socket.on('guestBlockDestroy', function(block){
+    Global.socket.on('guestBlockDestroy', function(block){
       for (let i = 0; i < block_columns; i++) {
           for(let j = 0; j < block_rows; j++) {
             if (typeof host_block_list[i][j] != undefined && host_block_list[i][j].name == block.name) {
@@ -421,7 +431,7 @@ export default class GameScene extends Phaser.Scene {
     if (oldPositionX != myCharacterSprite.x){
       myCharacterConfig.positionX = myCharacterSprite.x;
       myCharacterConfig.positionY = myCharacterSprite.y;
-      self.socket.emit('playerMovementServer', myCharacterSprite, myCharacterConfig, enemyCharacterSprite, enemyCharacterConfig);
+      Global.socket.emit('playerMovementServer', myCharacterSprite, myCharacterConfig, enemyCharacterSprite, enemyCharacterConfig);
     }
     oldPositionX = myCharacterSprite.x;
 
@@ -431,7 +441,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Getting the game started
     if (myCharacterConfig.isHost){
-      self.socket.emit('ballMovementServer', ballSprite, ballConfig, enemyCharacterConfig);
+      Global.socket.emit('ballMovementServer', ballSprite, ballConfig, enemyCharacterConfig);
     }
 
     if (myCharacterConfig.isHost){
@@ -454,7 +464,7 @@ export default class GameScene extends Phaser.Scene {
 
 function launchBallHost(){
   if (!hostServe && guestServe){
-    self.socket.emit('guestServeServer', true, enemyCharacterConfig);
+    Global.socket.emit('guestServeServer', true, enemyCharacterConfig);
     if (ballCanBeLaunched){
       ballLaunched = true;
       ballCanBeLaunched = false;
@@ -479,7 +489,7 @@ function launchBallGuest(){
   ballLaunched = false;
   self.input.on('pointerdown', function(pointer){
     guestServe = false;
-    self.socket.emit('tellHostServeServer', true, enemyCharacterConfig);
+    Global.socket.emit('tellHostServeServer', true, enemyCharacterConfig);
   }, self);
 }
 
@@ -529,7 +539,7 @@ function getRandomInt(min, max){
 function destroyBlock(ballSprite, block){
 
   if (myCharacterConfig.isHost){
-    self.socket.emit('blockDestroy', block, enemyCharacterConfig );
+    Global.socket.emit('blockDestroy', block, enemyCharacterConfig );
   }
   block.destroy();
 
@@ -561,7 +571,7 @@ function takeDamage(heart, c_ball){
     }
     else if (health_host == 0){
       heart.setTexture('planet_hero_stage_3')
-      self.socket.emit('gameOverServer', enemyCharacterConfig, true)
+      Global.socket.emit('gameOverServer', enemyCharacterConfig, true)
       hostLost = true;
       gameOver = true;
     }
@@ -578,11 +588,11 @@ function takeDamage(heart, c_ball){
     }
     else if (health_guest == 0){
       heart.setTexture('planet_enemy_stage_3')
-      self.socket.emit('gameOverServer', enemyCharacterConfig, false)
+      Global.socket.emit('gameOverServer', enemyCharacterConfig, false)
       gameOver = true;
     }
   }
-  self.socket.emit('changeHeart', heart, enemyCharacterConfig, hostServe);
+  Global.socket.emit('changeHeart', heart, enemyCharacterConfig, hostServe);
   if (!gameOver){
     spawnBall();
   }
