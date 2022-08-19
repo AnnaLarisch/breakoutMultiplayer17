@@ -19,13 +19,25 @@ export default class StartScene extends Phaser.Scene {
 
     }
     create() {
-        startgamebutton = self.physics.add.sprite(100, 400, 'start_game_button').setOrigin(0,0).setInteractive();
-        startgamebutton.on('pointerup', function (pointer){
-            startgamebutton.setPosition(-300, -300);
-            socket.emit('startGameServer', myCharacterConfig);
-          }, this);
-        self = this;
+      // Black Screen
 
+      black_screen = self.physics.add.sprite(0, 0, 'black_screen').setOrigin(0,0);
+      title_gastro_cosmos = self.physics.add.sprite(0, 50, 'title_gastro_cosmos').setOrigin(0,0);
+
+      playersConnected = self.add.text(230, 810, 'Connected: 1/2')
+
+      // Start Game Button
+
+      button_ready = self.physics.add.sprite(120, 280, 'button_ready').setOrigin(0,0).setInteractive();
+      button_ready.on('pointerup', function (pointer){
+        if (!readyForGame) {
+          button_ready.setTexture('button_ready_active');
+          ui_element_waiting_for_opponent = self.physics.add.sprite(0, 420, 'ui_element_waiting_for_opponent').setOrigin(0,0);
+          Global.socket.emit('startGameServer', myCharacterConfig);
+          readyForGame = true;
+        }
+        
+      }, this);
     }
     update() {
 

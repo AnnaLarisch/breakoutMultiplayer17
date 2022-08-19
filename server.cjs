@@ -166,10 +166,10 @@ io.on('connection', function (socket) {
 });
 
 
-// Server listens on port 8081 for join requests
+// Server listens on port 80 for join requests
 //helo
 
-const PORT = process.env.PORT || 8081;
+const PORT = process.env.PORT || 80;
 
 
 server.listen(PORT, function () {
