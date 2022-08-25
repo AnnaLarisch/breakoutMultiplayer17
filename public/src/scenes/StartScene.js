@@ -1,4 +1,16 @@
+import Global from "../global.js";
+import GameScene from "./GameScene.js"
+import { startGameServer } from "./GameScene.js";
+
 var self;
+
+var black_screen;
+var title_gastro_cosmos;
+var ui_element_waiting_for_opponent;
+var button_ready;
+var playersConnected;
+
+
 
 
 export default class StartScene extends Phaser.Scene {
@@ -19,28 +31,26 @@ export default class StartScene extends Phaser.Scene {
 
     }
     create() {
+      self = this;
       // Black Screen
 
       black_screen = self.physics.add.sprite(0, 0, 'black_screen').setOrigin(0,0);
       title_gastro_cosmos = self.physics.add.sprite(0, 50, 'title_gastro_cosmos').setOrigin(0,0);
-
-      playersConnected = self.add.text(230, 810, 'Connected: 1/2')
+      Global.connectedPlayers = Global.connectedPlayers + 1;
+      playersConnected = self.add.text(230, 810, 'Connected: ' + Global.connectedPlayers + '/2');
 
       // Start Game Button
 
       button_ready = self.physics.add.sprite(120, 280, 'button_ready').setOrigin(0,0).setInteractive();
       button_ready.on('pointerup', function (pointer){
-        if (!readyForGame) {
           button_ready.setTexture('button_ready_active');
           ui_element_waiting_for_opponent = self.physics.add.sprite(0, 420, 'ui_element_waiting_for_opponent').setOrigin(0,0);
-          Global.socket.emit('startGameServer', myCharacterConfig);
-          readyForGame = true;
-        }
+          startGameServer();
         
       }, this);
     }
     update() {
-
+      playersConnected.setText('Connected: ' + Global.connectedPlayers + '/2')
     }
 
 }

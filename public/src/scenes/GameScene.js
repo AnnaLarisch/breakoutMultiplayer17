@@ -2,40 +2,67 @@ import Global from '../global.js';
 import CONFIG from '../config.js';
 
 
+
+// TECHNICAL VARIABLES
 var cursors;
 var self;
+var socket;
+var gameWidth = CONFIG.DEFAULT_WIDTH;
+var gameHeight = CONFIG.DEFAULT_HEIGHT;
 
-var host_block_list = [];
-var guest_block_list = [];
-var block_rows = 2;
-var block_columns = 6;
 
-var gameStart = false;
+// GAME VARIABLES
+var hero_small_ship_list = [];
+var enemy_small_ship_list = [];
+var small_ship_rows = CONFIG.DEFAULT_SMALL_SHIP_ROWS;
+var small_ship_columns = CONFIG.DEFAULT_SMALL_SHIP_COLUMNS;
 
-var oldPositionX = 0;
 
-var startgamebutton;
-
-var gameWidth = 393;
-var gameHeight = 851;
-
+var oldPositionX;
 
 
 
-var readyForGame = false;
+// POWER UP VARIABLES 
+var powerUpBatteryHostActive = false;
+var powerUpBatteryGuestActive = false;
+var powerUpBatteryHostCooldown = 5;
+var powerUpBatteryGuestCooldown = 5;
+
+
+
+
+
 var gameOver;
 
 
 var maxVelocity = 1000;
 var ballVelocityY = 150;
 
-var heart_host;
-var heart_guest;
+var planet_hero;
+var planet_enemy;
 var health_host = 3;
 var health_guest = 3;
 var ballVelocityX = 80;
+var initialCountdown = 5;
+var ballLaunched = false;
+var ballCanBeLaunched = false;
+var blocks;
+var hostServe = false;
+var guestServe = false;
+var ui_element_countdown;
+var ui_element_countdown_list = [];
+
+var power_up_hero;
+var power_up_enemy;
+var power_up_hero_list = [];
+var power_up_enemy_list = []; 
+var power_up_hero_counter = 0;
+var power_up_enemy_counter = 0;
+
+var powerUpList;
 
 
+// GAME OBEJCT VARIABLES
 var myCharacterSprite;
 var myCharacterConfig = {
   playerID: -1,
@@ -73,40 +100,6 @@ var ballConfig = {
   isPresent: false
 }
 
-var initialCountdown = 5;
-
-
-var ballLaunched = false;
-var ballCanBeLaunched = false;
-
-
-
-var blocks;
-var gameOvertext;
-
-var hostServe = false;
-var guestServe = false;
-
-
-var black_screen;
-var title_gastro_cosmos;
-var ui_element_waiting_for_opponent;
-var button_ready;
-
-var ui_element_countdown;
-
-
-var game_over_black_screen;
-var title_game_over;
-var button_rematch;
-var button_quit;
-var button_start_chatting;
-var ui_element_you_won_lost;
-var hostLost = false;
-
-var playersConnected;
-
-
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -114,28 +107,6 @@ export default class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image('playerRed', 'assets/player_red.png');
-    this.load.image('playerGreen', 'assets/player_green.png');
-    this.load.image('ball_basic', 'assets/ball_basic_2.png');
-    this.load.image('blueBlock', 'assets/block_blue.png');
-    this.load.image('orangeBlock', 'assets/block_orange.png');
-    this.load.image('heart_basic', 'assets/player_heart_pink.png');
-    this.load.image('heart_damaged_purple', 'assets/player_heart_purple.png');
-    this.load.image('heart_damaged_grey', 'assets/player_heart_grey.png');
-    this.load.image('heart_game_over', 'assets/player_heart_game_over.png');
-    this.load.image('start_game_button', 'assets/start_game_button.png');
-
-
-    // Start Screen UI
-    
-    this.load.image('black_screen', 'assets/black_screen.png');
-
-    this.load.image('title_gastro_cosmos', 'assets/StartScene/title_gastro_cosmos.png')
-    this.load.image('button_ready', 'assets/StartScene/button_ready.png')
-    this.load.image('button_ready_active', 'assets/StartScene/button_ready_active.png')
-    this.load.image('ui_element_waiting', 'assets/StartScene/ui_element_waiting.png')
-    this.load.image('ui_element_waiting_for_opponent', 'assets/StartScene/ui_element_waiting_for_opponent.png')
-
 
     // Game Element UI
 
@@ -149,8 +120,10 @@ export default class GameScene extends Phaser.Scene {
     this.load.image('energy_sphere_basic', 'assets/GameScene/energy_sphere_basic.png')
 
     this.load.image('ship_large_blue', 'assets/GameScene/ship_large_blue.png')
+    this.load.image('ship_large_blue_ftl_mode', 'assets/GameScene/ship_large_blue_ftl_mode.png')
     this.load.image('ship_small_blue', 'assets/GameScene/ship_small_blue.png')
     this.load.image('ship_large_red', 'assets/GameScene/ship_large_red.png')
+    this.load.image('ship_large_red_ftl_mode', 'assets/GameScene/ship_large_red_ftl_mode.png')
     this.load.image('ship_small_red', 'assets/GameScene/ship_small_red.png')
 
     this.load.image('planet_enemy_stage_0', 'assets/GameScene/planet_enemy_stage_0.png')
@@ -163,14 +136,14 @@ export default class GameScene extends Phaser.Scene {
     this.load.image('planet_hero_stage_2', 'assets/GameScene/planet_orange_stage_2.png')
     this.load.image('planet_hero_stage_3', 'assets/GameScene/planet_orange_stage_3.png')
 
-    // Game Over UI Elements
+    this.load.image('power_up_thunder_blue', 'assets/GameScene/power_up_thunder_blue.png')
+    this.load.image('power_up_battery_blue', 'assets/GameScene/power_up_battery_blue.png')
+    this.load.image('power_up_shield_blue', 'assets/GameScene/power_up_shield_blue.png')
+    this.load.image('power_up_thunder_red', 'assets/GameScene/power_up_thunder_red.png')
+    this.load.image('power_up_battery_red', 'assets/GameScene/power_up_battery_red.png')
+    this.load.image('power_up_shield_red', 'assets/GameScene/power_up_shield_red.png')
+    powerUpList = ["power_up_shield", "power_up_battery", "power_up_thunder"];
 
-    this.load.image('title_game_over', 'assets/GameOverScene/title_game_over.png')
-    this.load.image('ui_element_you_won', 'assets/GameOverScene/ui_element_you_won.png')
-    this.load.image('ui_element_you_lost', 'assets/GameOverScene/ui_element_you_lost.png')
-    this.load.image('button_quit', 'assets/GameOverScene/button_quit.png')
-    this.load.image('button_rematch', 'assets/GameOverScene/button_rematch.png')
-    this.load.image('button_start_chatting', 'assets/GameOverScene/button_start_chatting.png')
 
 
   }
@@ -178,9 +151,15 @@ export default class GameScene extends Phaser.Scene {
   create() {
 
     // Socket Communication
-
     self = this;
-    Global.socket = io();
+    socket = io();
+
+    // Scene Management
+    self.scene.launch("StartScene");
+    self.scene.bringToTop("StartScene");
+    self.scene.launch("UIScene");
+    self.scene.bringToTop("UIScene");
+    self.scene.setVisible(false);
 
     // Randomly choose player with first serve
     if (getRandomInt(0, 1) == 0){
@@ -208,49 +187,33 @@ export default class GameScene extends Phaser.Scene {
     ballSprite.setCollideWorldBounds(true);
     spawnBall();
 
-    heart_host = self.physics.add.sprite(138, 5, 'planet_hero_stage_0').setOrigin(0,0).setScale(1.2).setImmovable(true).setName("heart_host");
-    heart_host.flipY = true;
+    planet_hero = self.physics.add.sprite(138, 5, 'planet_hero_stage_0').setOrigin(0,0).setScale(1.2).setImmovable(true).setName("planet_hero");
+    planet_hero.flipY = true;
     ui_element_countdown = self.physics.add.sprite(180, 410, 'ui_element_3').setOrigin(0,0);
 
       
-    heart_guest = self.physics.add.sprite(138, 740, 'planet_enemy_stage_0').setOrigin(0,0).setScale(1.2).setImmovable(true).setName("heart_guest");
+    planet_enemy = self.physics.add.sprite(138, 740, 'planet_enemy_stage_0').setOrigin(0,0).setScale(1.2).setImmovable(true).setName("planet_enemy");
     blocks = self.physics.add.group({
       allowGravity: false
     })
 
+    power_up_hero = this.physics.add.group({
+    });
+    power_up_enemy = this.physics.add.group({
+    });
     
 
     
-    for (let i = 0; i < block_columns; i++) {
-      host_block_list[i] = [];
-      guest_block_list[i] = [];
-      for(let j = 0; j < block_rows; j++) {
+    for (let i = 0; i < small_ship_columns; i++) {
+      hero_small_ship_list[i] = [];
+      enemy_small_ship_list[i] = [];
+      for(let j = 0; j < small_ship_rows; j++) {
         let xHost = (160 * Math.cos(i*((Math.PI/5))) + 172);
         let yHost = (100 * Math.sin(i*((Math.PI/5))) + 25) + (j*30); 
-        host_block_list[i][j] = blocks.create(xHost, yHost, "ship_small_blue").setOrigin(0,0).setImmovable(true).setName("hostBlock" + i + j);
-        guest_block_list[i][j] = blocks.create(xHost, -1 * yHost + (gameHeight -25), "ship_small_red").setOrigin(0,0).setImmovable(true).setName("guestBlock" + i + j);
+        hero_small_ship_list[i][j] = blocks.create(xHost, yHost, "ship_small_blue").setOrigin(0,0).setImmovable(true).setName("hostBlock" + i + j);
+        enemy_small_ship_list[i][j] = blocks.create(xHost, -1 * yHost + (gameHeight -25), "ship_small_red").setOrigin(0,0).setImmovable(true).setName("guestBlock" + i + j);
       }
     }
-
-    // Black Screen
-
-    black_screen = self.physics.add.sprite(0, 0, 'black_screen').setOrigin(0,0);
-    title_gastro_cosmos = self.physics.add.sprite(0, 50, 'title_gastro_cosmos').setOrigin(0,0);
-
-    playersConnected = self.add.text(230, 810, 'Connected: 1/2')
-
-    // Start Game Button
-
-    button_ready = self.physics.add.sprite(120, 280, 'button_ready').setOrigin(0,0).setInteractive();
-    button_ready.on('pointerup', function (pointer){
-      if (!readyForGame) {
-        button_ready.setTexture('button_ready_active');
-        ui_element_waiting_for_opponent = self.physics.add.sprite(0, 420, 'ui_element_waiting_for_opponent').setOrigin(0,0);
-        Global.socket.emit('startGameServer', myCharacterConfig);
-        readyForGame = true;
-      }
-      
-    }, this);
 
     // Controls
 
@@ -259,11 +222,12 @@ export default class GameScene extends Phaser.Scene {
 
     // Sockets 
 
-    Global.socket.on('characterSpawn', function (myCharacter, enemyCharacter, ball) {
+    socket.on('characterSpawn', function (myCharacter, enemyCharacter, ball) {
 
       myCharacterConfig = myCharacter;
       enemyCharacterConfig = enemyCharacter;
       if (myCharacterConfig.isHost){
+        Global.isHost = true;
         myCharacterConfig.positionX = CONFIG.DEFAULT_SPAWN_X_HOST;
         myCharacterConfig.positionY = CONFIG.DEFAULT_SPAWN_Y_HOST;
         enemyCharacterConfig.positionX = CONFIG.DEFAULT_SPAWN_X_GUEST;
@@ -283,27 +247,19 @@ export default class GameScene extends Phaser.Scene {
       enemyCharacterSprite.setPosition(enemyCharacterConfig.positionX, enemyCharacterConfig.positionY).setOrigin(0,0);
       ballConfig = ball;
 
-      Global.socket.emit('playerMovementServer', myCharacterSprite, myCharacterConfig, enemyCharacterSprite, enemyCharacterConfig);
+      socket.emit('playerMovementServer', myCharacterSprite, myCharacterConfig, enemyCharacterSprite, enemyCharacterConfig);
     });
 
-    Global.socket.on('playerConnectedCounter', function (){
-      playersConnected.setText("Connected: 2/2");
+    socket.on('playerConnectedCounter', function (){
+      Global.connectedPlayers = Global.connectedPlayers + 1;
     });
 
 
-    Global.socket.on('startGame', function (){
+    socket.on('startGame', function (){
       setTimeout(function(){ 
-        black_screen.setActive(false);
-        black_screen.setVisible(false);
-        title_gastro_cosmos.setActive(false);
-        title_gastro_cosmos.setVisible(false);
-        ui_element_waiting_for_opponent.setActive(false);
-        ui_element_waiting_for_opponent.setVisible(false);
-        button_ready.setActive(false);
-        button_ready.setVisible(false);
-        playersConnected.setActive(false);
-        playersConnected.setVisible(false);
-        
+        self.scene.get("StartScene").scene.setVisible(false);
+        self.scene.get("StartScene").scene.setActive(false);
+
         // Timer
         
         self.time.addEvent({ delay: 1000, callback: onEvent, callbackScope: this, loop: true });
@@ -315,103 +271,145 @@ export default class GameScene extends Phaser.Scene {
       if (myCharacterConfig.isHost){
 
         // Collider
-        // Colliders are only activated for host, to make sure that desync will not happen
 
         self.physics.add.collider(enemyCharacterSprite, ballSprite, change_direction_up);
         self.physics.add.collider(myCharacterSprite, ballSprite, change_direction_down);
         self.physics.add.collider(blocks, ballSprite, destroyBlock);
-        self.physics.add.collider(heart_host, ballSprite, takeDamage);
-        self.physics.add.collider(heart_guest, ballSprite, takeDamage);
+        self.physics.add.collider(planet_hero, ballSprite, takeDamageHero);
+        self.physics.add.collider(planet_enemy, ballSprite, takeDamageEnemy);
+        self.physics.add.collider(enemyCharacterSprite, power_up_enemy, activatePowerUp);
+        self.physics.add.collider(myCharacterSprite, power_up_hero, activatePowerUp);
+
       }
 
     
   });
 
-    Global.socket.on('gameOver', function (isHost){
-     
+    socket.on('gameOver', function (hostLost){
+      Global.hostLost = hostLost;
       gameOver = true;
-      ballSprite.setVelocityX(0);
-      ballSprite.setVelocityY(0);
       ballSprite.setActive(false);
       ballSprite.setVisible(false);
+      self.scene.pause("GameScene");
       setTimeout(function(){ 
-       
-        game_over_black_screen = self.physics.add.sprite(0, 0, "black_screen").setOrigin(0,0);
-        title_game_over = self.physics.add.sprite(0, 50, "title_game_over").setOrigin(0,0);
-        //button_rematch = self.physics.add.sprite(0, 650, "button_rematch").setOrigin(0,0);
-        button_start_chatting = self.physics.add.sprite(100, 500, "button_start_chatting").setOrigin(0,0);
-        button_quit = self.physics.add.sprite(280, 7900, "button_quit").setOrigin(0,0);
-        if (!isHost){
-          ui_element_you_won_lost = self.physics.add.sprite(0, 220, "ui_element_you_lost").setOrigin(0,0);
-        }
-        else{
-          ui_element_you_won_lost = self.physics.add.sprite(0, 220, "ui_element_you_won").setOrigin(0,0);
-        }
-      }, 1500);
-
-
+        self.scene.get("GameScene").scene.setVisible(false);
+        self.scene.launch("GameOverScene");
+        self.scene.get("GameOverScene").scene.setVisible(true);
+      }, 1000);
     });
 
-    Global.socket.on('playerMovementClient', function (movedCharacterConfig) {
+    socket.on('takeDamage', function (hostDamage){
+      if(hostDamage){
+        health_host--;
+        hostServe = true;
+        guestServe = false;
+        if (health_host == 2){
+          planet_hero.setTexture('planet_hero_stage_1')
+    
+        }
+        else if (health_host == 1){
+          planet_hero.setTexture('planet_hero_stage_2')
+        }
+        else if (health_host == 0){
+          planet_hero.setTexture('planet_hero_stage_3')
+          socket.emit('gameOverServer', true)
+          Global.hostLost = true;
+          gameOver = true;
+        }
+      }
+      else{
+        health_guest--;
+        hostServe = false;
+        guestServe = true;
+        if (health_guest == 2){
+          planet_enemy.setTexture('planet_enemy_stage_1')
+        }
+        else if (health_guest == 1){
+          planet_enemy.setTexture('planet_enemy_stage_2')
+        }
+        else if (health_guest == 0){
+          planet_enemy.setTexture('planet_enemy_stage_3')
+          socket.emit('gameOverServer', false)
+          gameOver = true;
+        }
+      }
+      if (!gameOver && Global.isHost){
+        spawnBall();
+      }
+    });
+
+    socket.on('playerMovementClient', function (movedCharacterConfig) {
       enemyCharacterConfig = movedCharacterConfig;
       enemyCharacterSprite.setPosition(enemyCharacterConfig.positionX, enemyCharacterConfig.positionY);
     });
 
-    Global.socket.on('ballMovementGuest', function(host_ball){
+    socket.on('ballMovementGuest', function(host_ball){
       ballSprite.x = host_ball.x
       ballSprite.y = host_ball.y
     });
 
-    Global.socket.on('pauseGame', function(){
+    socket.on('pauseGame', function(){
       self.scene.pause("GameScene");
       setTimeout(function(){ 
-      self.scene.get("GameScene").scene.setVisible(false);
-      self.scene.launch("PauseScene");
-      self.scene.get("PauseScene").scene.setVisible(true);
+        self.scene.get("GameScene").scene.setVisible(false);
+        self.scene.launch("PauseScene");
+        self.scene.get("PauseScene").scene.setVisible(true);
       }, 1000);
       
     });
 
-    Global.socket.on('startGameScene', function(){
+    socket.on('startGameScene', function(){
       self.scene.launch("StartScene");
       self.scene.get("StartScene").scene.setVisible(true);
       self.scene.get("GameScene").scene.setVisible(false);
       self.scene.pause("GameScene");
     });
 
-    Global.socket.on('remove', function (player) {
-      enemyCharacterSprite.indexOf(player).destroy();
-    });
-
-
-    Global.socket.on('guestServe', function (bool) {
+    socket.on('guestServe', function (bool) {
       guestServe = bool;
     });
-    Global.socket.on('tellHostServe', function (bool) {
+    socket.on('tellHostServe', function (bool) {
       ballCanBeLaunched = bool;
     });
 
-    Global.socket.on('changeHeartGuest', function(changedHeart, isHostHeart){
-      if (isHostHeart){
-        heart_host.setTexture(changedHeart.textureKey);
-      }
-      else{
-        heart_guest.setTexture(changedHeart.textureKey);
-      }
-    });
-
-    Global.socket.on('guestBlockDestroy', function(block){
-      for (let i = 0; i < block_columns; i++) {
-          for(let j = 0; j < block_rows; j++) {
-            if (typeof host_block_list[i][j] != undefined && host_block_list[i][j].name == block.name) {
-              host_block_list[i][j].destroy();
+    socket.on('guestBlockDestroy', function(block){
+      for (let i = 0; i < small_ship_columns; i++) {
+          for(let j = 0; j < small_ship_rows; j++) {
+            if (typeof hero_small_ship_list[i][j] != undefined && hero_small_ship_list[i][j].name == block.name) {
+              hero_small_ship_list[i][j].destroy();
           }
-          if (typeof guest_block_list[i][j] != undefined && guest_block_list[i][j].name == block.name) {
-            guest_block_list[i][j].destroy();
+          if (typeof enemy_small_ship_list[i][j] != undefined && enemy_small_ship_list[i][j].name == block.name) {
+            enemy_small_ship_list[i][j].destroy();
           }
         }
       }
     });
+
+    socket.on('powerUpBattery', function(isHost){
+      if (myCharacterConfig.isHost && isHost) {
+        myCharacterSprite.setTexture("ship_large_blue_ftl_mode")
+        powerUpBatteryHostActive = true;
+        powerUpBatteryHostCooldown = 5;
+      }
+      if (!myCharacterConfig.isHost && isHost) {
+        enemyCharacterSprite.setTexture("ship_large_blue_ftl_mode")
+        powerUpBatteryHostActive = true;
+        powerUpBatteryHostCooldown = 5;
+      }
+      if (myCharacterConfig.isHost  && !isHost) {
+        enemyCharacterSprite.setTexture("ship_large_red_ftl_mode")
+        powerUpBatteryGuestActive = true;
+        powerUpBatteryGuestCooldown = 5;
+      }
+      if (!myCharacterConfig.isHost && !isHost) {
+        myCharacterSprite.setTexture("ship_large_red_ftl_mode")
+        powerUpBatteryGuestActive = true;
+        powerUpBatteryGuestCooldown = 5;
+      }
+      self.time.addEvent({ delay: 1000, callback: powerUpBatteryTimer, callbackScope: this, loop: true });
+
+        
+      });
   }
 
   update() {
@@ -419,10 +417,20 @@ export default class GameScene extends Phaser.Scene {
     // Player Movement
 
     if (cursors.left.isDown && !gameOver) {
-      myCharacterSprite.setVelocityX(-300);
+      if ((myCharacterConfig.isHost && powerUpBatteryHostActive) || (myCharacterConfig.isGuest && powerUpBatteryGuestActive)){
+        myCharacterSprite.setVelocityX(-600);
+      }
+      else{
+        myCharacterSprite.setVelocityX(-300);
+      }
     } 
     else if (cursors.right.isDown && !gameOver) {
-      myCharacterSprite.setVelocityX(300);
+      if ((myCharacterConfig.isHost && powerUpBatteryHostActive) || (myCharacterConfig.isGuest && powerUpBatteryGuestActive)){
+        myCharacterSprite.setVelocityX(600);
+      }
+      else{
+        myCharacterSprite.setVelocityX(300);
+      }
     } 
     else {
       myCharacterSprite.setVelocityX(0);
@@ -431,17 +439,15 @@ export default class GameScene extends Phaser.Scene {
     if (oldPositionX != myCharacterSprite.x){
       myCharacterConfig.positionX = myCharacterSprite.x;
       myCharacterConfig.positionY = myCharacterSprite.y;
-      Global.socket.emit('playerMovementServer', myCharacterSprite, myCharacterConfig, enemyCharacterSprite, enemyCharacterConfig);
+      socket.emit('playerMovementServer', myCharacterSprite, myCharacterConfig, enemyCharacterSprite, enemyCharacterConfig);
     }
     oldPositionX = myCharacterSprite.x;
 
-    
-    // Start Countdown 
-
+  
 
     // Getting the game started
     if (myCharacterConfig.isHost){
-      Global.socket.emit('ballMovementServer', ballSprite, ballConfig, enemyCharacterConfig);
+      socket.emit('ballMovementServer', ballSprite, ballConfig, enemyCharacterConfig);
     }
 
     if (myCharacterConfig.isHost){
@@ -464,8 +470,9 @@ export default class GameScene extends Phaser.Scene {
 
 function launchBallHost(){
   if (!hostServe && guestServe){
-    Global.socket.emit('guestServeServer', true, enemyCharacterConfig);
+    socket.emit('guestServeServer', true, enemyCharacterConfig);
     if (ballCanBeLaunched){
+      guestServe = false;
       ballLaunched = true;
       ballCanBeLaunched = false;
       ballVelocityY = -100;
@@ -477,6 +484,7 @@ function launchBallHost(){
     self.input.on('pointerdown', function(pointer){
       if (!ballLaunched){
         ballLaunched = true;
+        guestServe = false;
         ballVelocityY = 100;
         ballSprite.setVelocityY(ballVelocityY);
         changeVelocityHorizontal();
@@ -489,7 +497,8 @@ function launchBallGuest(){
   ballLaunched = false;
   self.input.on('pointerdown', function(pointer){
     guestServe = false;
-    Global.socket.emit('tellHostServeServer', true, enemyCharacterConfig);
+    hostServe = false;
+    socket.emit('tellHostServeServer', true, enemyCharacterConfig);
   }, self);
 }
 
@@ -539,84 +548,34 @@ function getRandomInt(min, max){
 function destroyBlock(ballSprite, block){
 
   if (myCharacterConfig.isHost){
-    Global.socket.emit('blockDestroy', block, enemyCharacterConfig );
+    socket.emit('blockDestroy', block, enemyCharacterConfig );
+  }
+  var powerUpChoice = powerUpList[getRandomInt(0,2)];
+  if (block.name.includes("guest")){
+    power_up_hero_list[power_up_hero_counter] = power_up_hero.create(block.x, block.y, (powerUpChoice + "_blue")).setOrigin(0,0);
+    power_up_hero_list[power_up_hero_counter].setVelocityY(-100);
+    power_up_hero_list[power_up_hero_counter].setName(power_up_hero_counter);
+    power_up_hero_counter ++;
+
+  }
+  else{
+    power_up_enemy_list[power_up_enemy_counter] = power_up_enemy.create(block.x, block.y, (powerUpChoice + "_red")).setOrigin(0,0);
+    power_up_enemy_list[power_up_enemy_counter].setVelocityY(+100);
+    power_up_enemy_list[power_up_enemy_counter].setName(power_up_enemy_counter);
+    power_up_enemy_counter ++;
   }
   block.destroy();
 
-  if (ballVelocityY > 0){
-    ballVelocityY == ballVelocityY + 50;
-    ballSprite.setVelocityY(ballVelocityY);
-  }
-  else{
-    ballVelocityY == ballVelocityY - 50;
-    ballSprite.setVelocityY(ballVelocityY);
-  }
+  ballVelocityY == (-1 * ballVelocityY);
+  ballSprite.setVelocityY(ballVelocityY);
   changeVelocityHorizontal();
-
-
 }
 
-function takeDamage(heart, c_ball){
-
-  if(heart.name == "heart_host"){
-    health_host--;
-    hostServe = true;
-    guestServe = false;
-    if (health_host == 2){
-      heart.setTexture('planet_hero_stage_1')
-
-    }
-    else if (health_host == 1){
-      heart.setTexture('planet_hero_stage_2')
-    }
-    else if (health_host == 0){
-      heart.setTexture('planet_hero_stage_3')
-      Global.socket.emit('gameOverServer', enemyCharacterConfig, true)
-      hostLost = true;
-      gameOver = true;
-    }
-  }
-  else if (heart.name = "heart_guest"){
-    health_guest--;
-    hostServe = false;
-    guestServe = true;
-    if (health_guest == 2){
-      heart.setTexture('planet_enemy_stage_1')
-    }
-    else if (health_guest == 1){
-      heart.setTexture('planet_enemy_stage_2')
-    }
-    else if (health_guest == 0){
-      heart.setTexture('planet_enemy_stage_3')
-      Global.socket.emit('gameOverServer', enemyCharacterConfig, false)
-      gameOver = true;
-    }
-  }
-  Global.socket.emit('changeHeart', heart, enemyCharacterConfig, hostServe);
-  if (!gameOver){
-    spawnBall();
-  }
-  else{
-    ballSprite.setVelocityX(0);
-    ballSprite.setVelocityY(0);
-    ballSprite.setActive(false);
-    ballSprite.setVisible(false);
-    setTimeout(function(){ 
-    
-    game_over_black_screen = self.physics.add.sprite(0, 0, "black_screen").setOrigin(0,0);
-    title_game_over = self.physics.add.sprite(0, 50, "title_game_over").setOrigin(0,0);
-    //button_rematch = self.physics.add.sprite(0, 650, "button_rematch").setOrigin(0,0);
-    button_start_chatting = self.physics.add.sprite(100, 500, "button_start_chatting").setOrigin(0,0);
-    button_quit = self.physics.add.sprite(280, 7900, "button_quit").setOrigin(0,0);
-    if (hostLost){
-      ui_element_you_won_lost = self.physics.add.sprite(0, 220, "ui_element_you_lost").setOrigin(0,0);
-    }
-    else{
-      ui_element_you_won_lost = self.physics.add.sprite(0, 220, "ui_element_you_won").setOrigin(0,0);
-    }
-  }, 1500);
-  }
-
+function takeDamageHero(heart, c_ball){
+  socket.emit('takeDamageServer', true);  
+}
+function takeDamageEnemy(heart, c_ball){
+  socket.emit('takeDamageServer', false);  
 }
 
 function spawnBall(){
@@ -625,6 +584,7 @@ function spawnBall(){
   }
   else{
     ballSprite.setPosition(enemyCharacterSprite.x + 60, enemyCharacterSprite.y - 80).setOrigin(0,0);
+    hostServe = false;
   }
   ballConfig.isPresent = true;
   ballLaunched = false;
@@ -656,4 +616,78 @@ function onEvent ()
 
     }
   }
+}
+
+function powerUpBatteryTimer(){
+  if (powerUpBatteryHostCooldown > 0){
+    powerUpBatteryHostCooldown --;
+  }
+  if (powerUpBatteryGuestCooldown > 0){
+    powerUpBatteryGuestCooldown --;
+  }
+  if (powerUpBatteryHostCooldown == 0){
+    powerUpBatteryHostActive = false;
+    if (myCharacterConfig.isHost){
+      myCharacterSprite.setTexture("ship_large_blue")
+    }
+    if (!myCharacterConfig.isHost){
+      enemyCharacterSprite.setTexture("ship_large_blue")
+    }
+  }
+  if (powerUpBatteryGuestCooldown == 0){
+    powerUpBatteryGuestActive = false;
+    if (!myCharacterConfig.isHost){
+      myCharacterSprite.setTexture("ship_large_red")
+    }
+    if (myCharacterConfig.isHost){
+      enemyCharacterSprite.setTexture("ship_large_red")
+    }
+  }
+}
+
+function activatePowerUp(characterSprite, powerUp){
+  var activatedPowerUp = powerUp.texture.key
+  switch (activatedPowerUp){
+
+    case "power_up_battery_blue":
+      socket.emit('powerUpBatteryServer', true);  
+      console.log("power_up_battery_blue")
+
+      break;
+
+    case "power_up_battery_red":
+      socket.emit('powerUpBatteryServer', false);  
+      console.log("power_up_battery_red")
+
+      break;
+
+    case "power_up_shield_blue":
+      console.log("power_up_shield_blue")
+      break;
+
+    case "power_up_shield_red":
+      console.log("power_up_shield_red")
+      break;
+
+    case "power_up_thunder_blue":
+      console.log("power_up_thunder_blue")
+      break;
+
+    case "power_up_thunder_red":
+      console.log("power_up_thunder_red")
+      break;
+    default:
+      console.log("default")
+
+  }
+  powerUp.destroy();
+
+}
+
+
+export function startGameServer(){
+  socket.emit('startGameServer', myCharacterConfig)
+  self.scene.setVisible(true);
+
+
 }

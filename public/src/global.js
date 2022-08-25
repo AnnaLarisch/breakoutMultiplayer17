@@ -1,7 +1,9 @@
-import CONFIG from './config.js';
+//import CONFIG from './config.js';
 
 var Global = {
-    socket: null
+    connectedPlayers: 0,
+    hostLost: false,
+    isHost: false
 }
 
 

@@ -54,7 +54,6 @@ var ball = {
 var hostIsReady = false;
 var guestIsReady = false;
 
-var waitingForReconnect = false;
 
 
 io.on('connection', function (socket) {
@@ -151,11 +150,12 @@ io.on('connection', function (socket) {
   socket.on('blockDestroy', function (destroyedBlock, otherPlayerInfo) {
     socket.broadcast.to(otherPlayerInfo.socketID).emit('guestBlockDestroy', destroyedBlock);
   });
-  socket.on('changeHeart', function (changedHeart, otherPlayerInfo, isHostHeart) {
-    socket.broadcast.to(otherPlayerInfo.socketID).emit('changeHeartGuest', changedHeart, isHostHeart);
+  socket.on('takeDamageServer', function (isHost) {
+    io.in('game').emit('takeDamage', isHost);
   });
-  socket.on('gameOverServer', function (otherPlayerInfo, isHost){
-    socket.broadcast.to(otherPlayerInfo.socketID).emit('gameOver', isHost);
+  socket.on('gameOverServer', function (hostLost){
+    io.in('game').emit('gameOver', hostLost);
+
   });
   socket.on('guestServeServer', function (bool, otherPlayerInfo){
     socket.broadcast.to(otherPlayerInfo.socketID).emit('guestServe', bool);
@@ -163,13 +163,16 @@ io.on('connection', function (socket) {
   socket.on('tellHostServeServer', function (bool, otherPlayerInfo){
     socket.broadcast.to(otherPlayerInfo.socketID).emit('tellHostServe', bool);
   });
+  socket.on('powerUpBatteryServer', function (isHost){
+    io.in('game').emit('powerUpBattery', isHost);
+  });
 });
 
 
-// Server listens on port 80 for join requests
+// Server listens on port 8081 for join requests
 //helo
 
-const PORT = process.env.PORT || 80;
+const PORT = process.env.PORT || 8081;
 
 
 server.listen(PORT, function () {
