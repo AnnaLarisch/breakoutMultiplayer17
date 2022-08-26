@@ -54,12 +54,13 @@ var ui_element_countdown_list = [];
 
 var power_up_hero;
 var power_up_enemy;
-var power_up_hero_list = [];
-var power_up_enemy_list = []; 
-var power_up_hero_counter = 0;
-var power_up_enemy_counter = 0;
+var power_up_list = [];
+var power_up_counter = 0;
 
 var powerUpList;
+
+var powerUpAtGuestCounter = 0;
+var powerUpGuestList = [];
 
 
 // GAME OBEJCT VARIABLES
@@ -373,16 +374,44 @@ export default class GameScene extends Phaser.Scene {
     });
 
     socket.on('guestBlockDestroy', function(block){
+
       for (let i = 0; i < small_ship_columns; i++) {
           for(let j = 0; j < small_ship_rows; j++) {
-            if (typeof hero_small_ship_list[i][j] != undefined && hero_small_ship_list[i][j].name == block.name) {
-              hero_small_ship_list[i][j].destroy();
-          }
-          if (typeof enemy_small_ship_list[i][j] != undefined && enemy_small_ship_list[i][j].name == block.name) {
-            enemy_small_ship_list[i][j].destroy();
-          }
+            if (hero_small_ship_list[i][j] != undefined){
+              if (hero_small_ship_list[i][j].name == block.name) {
+                hero_small_ship_list[i][j].setVisible(false);
+                hero_small_ship_list[i][j].setActive(false);
+                hero_small_ship_list[i][j].disableBody();
+              }
+            }
+            if (enemy_small_ship_list[i][j] != undefined){
+              if (enemy_small_ship_list[i][j].name == block.name) {
+                enemy_small_ship_list[i][j].setVisible(false);
+                enemy_small_ship_list[i][j].setActive(false);
+                enemy_small_ship_list[i][j].disableBody();
+
+              }
+            } 
         }
+      } 
+    });
+
+    socket.on('spawnPowerUp', function(powerUpList, powerUpCounter){
+      while (powerUpCounter > powerUpAtGuestCounter){
+        var newPowerUp = powerUpList[powerUpAtGuestCounter];
+        console.log(newPowerUp);
+        powerUpGuestList.push(self.physics.add.sprite(newPowerUp.x, newPowerUp.y, newPowerUp.textureKey).setOrigin(0,0));
+        powerUpAtGuestCounter ++;
       }
+      for (let i = 0; i < powerUpGuestList.length; i++){
+        var newPowerUp = powerUpList[i];
+        console.log(newPowerUp);
+        powerUpGuestList[i].setPosition(newPowerUp.x, newPowerUp.y);
+      }
+    });
+    socket.on('deletePowerUp', function(powerUp){
+      powerUpGuestList[powerUp.name].setActive(false).setVisible(false).disableBody();
+      
     });
 
     socket.on('powerUpBattery', function(isHost){
@@ -390,25 +419,51 @@ export default class GameScene extends Phaser.Scene {
         myCharacterSprite.setTexture("ship_large_blue_ftl_mode")
         powerUpBatteryHostActive = true;
         powerUpBatteryHostCooldown = 5;
+        self.time.addEvent({ delay: 1000, callback: powerUpBatteryTimerHost, callbackScope: this, loop: powerUpBatteryHostCooldown > 0 });
       }
       if (!myCharacterConfig.isHost && isHost) {
         enemyCharacterSprite.setTexture("ship_large_blue_ftl_mode")
         powerUpBatteryHostActive = true;
         powerUpBatteryHostCooldown = 5;
+        self.time.addEvent({ delay: 1000, callback: powerUpBatteryTimerHost, callbackScope: this, loop: powerUpBatteryHostCooldown > 0 });
       }
       if (myCharacterConfig.isHost  && !isHost) {
         enemyCharacterSprite.setTexture("ship_large_red_ftl_mode")
         powerUpBatteryGuestActive = true;
         powerUpBatteryGuestCooldown = 5;
+        self.time.addEvent({ delay: 1000, callback: powerUpBatteryTimerGuest, callbackScope: this, loop: powerUpBatteryGuestCooldown > 0 });
       }
       if (!myCharacterConfig.isHost && !isHost) {
         myCharacterSprite.setTexture("ship_large_red_ftl_mode")
         powerUpBatteryGuestActive = true;
         powerUpBatteryGuestCooldown = 5;
+        self.time.addEvent({ delay: 1000, callback: powerUpBatteryTimerGuest, callbackScope: this, loop: powerUpBatteryGuestCooldown > 0 });
       }
-      self.time.addEvent({ delay: 1000, callback: powerUpBatteryTimer, callbackScope: this, loop: true });
 
         
+      });
+
+      socket.on('powerUpShield', function(isHost){
+          for (let i = 0; i < small_ship_columns; i++) {
+            for(let j = 0; j < small_ship_rows; j++) {
+              if (isHost) {
+                hero_small_ship_list[i][j].setActive(true);
+                hero_small_ship_list[i][j].setVisible(true);
+                hero_small_ship_list[i][j].enableBody();
+
+              }
+              else{
+                enemy_small_ship_list[i][j].setActive(true);
+                enemy_small_ship_list[i][j].setVisible(true);
+                enemy_small_ship_list[i][j].enableBody();
+              }
+            }
+          }
+      });
+      socket.on('powerUpThunder', function(isHost){
+        if (!powerUpThunderActive){
+          
+        }
       });
   }
 
@@ -448,6 +503,17 @@ export default class GameScene extends Phaser.Scene {
     // Getting the game started
     if (myCharacterConfig.isHost){
       socket.emit('ballMovementServer', ballSprite, ballConfig, enemyCharacterConfig);
+      for (let i = 0; i < power_up_counter; i++ ){
+        socket.emit('spawnPowerUpServer', power_up_list, power_up_counter, enemyCharacterConfig);
+      }
+    }
+    for (let i = 0; i < power_up_counter; i++){
+      if (power_up_list[i].x < -50 || power_up_list[i].x > 900){
+        socket.emit('deletePowerUpServer', power_up_list[i], enemyCharacterConfig);
+        powerUp.setActive(false);
+        powerUp.setVisible(false);
+        powerUp.disableBody();
+      }
     }
 
     if (myCharacterConfig.isHost){
@@ -473,6 +539,7 @@ function launchBallHost(){
     socket.emit('guestServeServer', true, enemyCharacterConfig);
     if (ballCanBeLaunched){
       guestServe = false;
+      hostServe = false;
       ballLaunched = true;
       ballCanBeLaunched = false;
       ballVelocityY = -100;
@@ -546,25 +613,38 @@ function getRandomInt(min, max){
 }
 
 function destroyBlock(ballSprite, block){
-
+  block.setVisible(false);
+  block.setActive(false);
+  block.disableBody();
   if (myCharacterConfig.isHost){
     socket.emit('blockDestroy', block, enemyCharacterConfig );
   }
-  var powerUpChoice = powerUpList[getRandomInt(0,2)];
   if (block.name.includes("guest")){
-    power_up_hero_list[power_up_hero_counter] = power_up_hero.create(block.x, block.y, (powerUpChoice + "_blue")).setOrigin(0,0);
-    power_up_hero_list[power_up_hero_counter].setVelocityY(-100);
-    power_up_hero_list[power_up_hero_counter].setName(power_up_hero_counter);
-    power_up_hero_counter ++;
-
+    change_direction_up()
   }
   else{
-    power_up_enemy_list[power_up_enemy_counter] = power_up_enemy.create(block.x, block.y, (powerUpChoice + "_red")).setOrigin(0,0);
-    power_up_enemy_list[power_up_enemy_counter].setVelocityY(+100);
-    power_up_enemy_list[power_up_enemy_counter].setName(power_up_enemy_counter);
-    power_up_enemy_counter ++;
+    change_direction_down()
   }
-  block.destroy();
+  if (getRandomInt(0,4) == 0){
+    var powerUpChoice = powerUpList[getRandomInt(0,2)];
+    if (block.name.includes("guest")){
+      change_direction_up()
+      power_up_list[power_up_counter] = power_up_hero.create(block.x, block.y, (powerUpChoice + "_blue")).setOrigin(0,0);
+      power_up_list[power_up_counter].setVelocityY(-100);
+      
+  
+    }
+    else{
+      change_direction_down()
+      power_up_list[power_up_counter] = power_up_enemy.create(block.x, block.y, (powerUpChoice + "_red")).setOrigin(0,0);
+      power_up_list[power_up_counter].setVelocityY(+100);
+    }
+    power_up_list[power_up_counter].setName(power_up_counter);
+    power_up_counter ++;
+  }
+ 
+
+
 
   ballVelocityY == (-1 * ballVelocityY);
   ballSprite.setVelocityY(ballVelocityY);
@@ -617,13 +697,9 @@ function onEvent ()
     }
   }
 }
-
-function powerUpBatteryTimer(){
+function powerUpBatteryTimerHost(){
   if (powerUpBatteryHostCooldown > 0){
     powerUpBatteryHostCooldown --;
-  }
-  if (powerUpBatteryGuestCooldown > 0){
-    powerUpBatteryGuestCooldown --;
   }
   if (powerUpBatteryHostCooldown == 0){
     powerUpBatteryHostActive = false;
@@ -634,6 +710,13 @@ function powerUpBatteryTimer(){
       enemyCharacterSprite.setTexture("ship_large_blue")
     }
   }
+}
+
+function powerUpBatteryTimerGuest(){
+  if (powerUpBatteryGuestCooldown > 0){
+    powerUpBatteryGuestCooldown --;
+  }
+ 
   if (powerUpBatteryGuestCooldown == 0){
     powerUpBatteryGuestActive = false;
     if (!myCharacterConfig.isHost){
@@ -662,25 +745,35 @@ function activatePowerUp(characterSprite, powerUp){
       break;
 
     case "power_up_shield_blue":
+      socket.emit('powerUpShieldServer', true);  
       console.log("power_up_shield_blue")
       break;
 
     case "power_up_shield_red":
+      socket.emit('powerUpShieldServer', false);  
       console.log("power_up_shield_red")
       break;
 
     case "power_up_thunder_blue":
+      socket.emit('powerUpThunderServer', true);  
       console.log("power_up_thunder_blue")
       break;
 
     case "power_up_thunder_red":
+      socket.emit('powerUpThunderServer', false);  
       console.log("power_up_thunder_red")
       break;
     default:
       console.log("default")
 
   }
-  powerUp.destroy();
+  socket.emit('deletePowerUpServer', powerUp, enemyCharacterConfig);
+
+  powerUp.setActive(false);
+  powerUp.setVisible(false);
+  powerUp.disableBody();
+
+
 
 }
 

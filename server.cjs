@@ -166,6 +166,18 @@ io.on('connection', function (socket) {
   socket.on('powerUpBatteryServer', function (isHost){
     io.in('game').emit('powerUpBattery', isHost);
   });
+  socket.on('powerUpShieldServer', function (isHost){
+    io.in('game').emit('powerUpShield', isHost);
+  });
+  socket.on('powerUpThunderServer', function (isHost){
+    io.in('game').emit('powerUpThunder', isHost);
+  });
+  socket.on('spawnPowerUpServer', function (powerUpList, powerUpCounter, otherPlayerInfo){
+    socket.broadcast.to(otherPlayerInfo.socketID).emit('spawnPowerUp', powerUpList, powerUpCounter);
+  });
+  socket.on('deletePowerUpServer', function (powerUp, otherPlayerInfo){
+    socket.broadcast.to(otherPlayerInfo.socketID).emit('deletePowerUp', powerUp);
+  });
 });
 
 
