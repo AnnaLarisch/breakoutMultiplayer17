@@ -140,11 +140,11 @@ export default class GameScene extends Phaser.Scene {
     this.load.image('energy_sphere_thunder', 'assets/GameScene/energy_sphere_thunder.png')
     this.load.image('background', 'assets/Background/background.png')
 
-    this.load.image('ship_large_blue', 'assets/GameScene/ship_large_blue.png')
-    this.load.image('ship_large_blue_ftl_mode', 'assets/GameScene/ship_large_blue_ftl_mode.png')
+    this.load.image('ship_large_blue', 'assets/GameScene/ship_large_blue_half_shield.png')
+    this.load.image('ship_large_blue_ftl_mode', 'assets/GameScene/ship_large_blue_half_shield_ftl_mode.png')
     this.load.image('ship_small_blue', 'assets/GameScene/ship_small_blue.png')
-    this.load.image('ship_large_red', 'assets/GameScene/ship_large_red.png')
-    this.load.image('ship_large_red_ftl_mode', 'assets/GameScene/ship_large_red_ftl_mode.png')
+    this.load.image('ship_large_red', 'assets/GameScene/ship_large_red_half_shield.png')
+    this.load.image('ship_large_red_ftl_mode', 'assets/GameScene/ship_large_red_half_shield_ftl_mode.png')
     this.load.image('ship_small_red', 'assets/GameScene/ship_small_red.png')
 
     this.load.image('planet_enemy_stage_0', 'assets/GameScene/planet_enemy_stage_0.png')
