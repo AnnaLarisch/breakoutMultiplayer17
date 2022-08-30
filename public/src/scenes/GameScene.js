@@ -252,6 +252,8 @@ export default class GameScene extends Phaser.Scene {
 
 
     // Timer Event
+    self.time.addEvent({ delay: 1, callback: ballUpdate, callbackScope: self, loop: true });
+
 
     // Sockets 
 
@@ -649,11 +651,11 @@ export default class GameScene extends Phaser.Scene {
     if (myCharacterConfig.isHost){
 
       if (!ballLaunched && hostServe && !guestServe){
-        socket.emit('ballMovementServer', ballSprite, ballSprite.body.velocity.x, ballSprite.body.velocity.y, ballConfig, enemyCharacterConfig);
+        //socket.emit('ballMovementServer', ballSprite, ballSprite.body.velocity.x, ballSprite.body.velocity.y, ballConfig, enemyCharacterConfig);
         ballSprite.setPosition(myCharacterSprite.x + 35, myCharacterSprite.y + 60)
       }
       if (!ballLaunched && !hostServe && guestServe){
-        socket.emit('ballMovementServer', ballSprite, ballSprite.body.velocity.x, ballSprite.body.velocity.y, ballConfig, enemyCharacterConfig);
+        //socket.emit('ballMovementServer', ballSprite, ballSprite.body.velocity.x, ballSprite.body.velocity.y, ballConfig, enemyCharacterConfig);
         ballSprite.setPosition(enemyCharacterSprite.x + 35, enemyCharacterSprite.y - 40)
       }
     }
@@ -677,7 +679,7 @@ function launchBallHost(){
       ballVelocityY = -1* spawnVelocity;
       ballSprite.setVelocityY(ballVelocityY);
       changeVelocityHorizontal();
-      socket.emit('ballMovementServer', ballSprite, ballSprite.body.velocity.x, ballSprite.body.velocity.y, ballConfig, enemyCharacterConfig);
+      //socket.emit('ballMovementServer', ballSprite, ballSprite.body.velocity.x, ballSprite.body.velocity.y, ballConfig, enemyCharacterConfig);
 
     }
   } 
@@ -690,7 +692,7 @@ function launchBallHost(){
         ballVelocityY = spawnVelocity;
         ballSprite.setVelocityY(ballVelocityY);
         changeVelocityHorizontal();
-        socket.emit('ballMovementServer', ballSprite, ballSprite.body.velocity.x, ballSprite.body.velocity.y, ballConfig, enemyCharacterConfig);
+        //socket.emit('ballMovementServer', ballSprite, ballSprite.body.velocity.x, ballSprite.body.velocity.y, ballConfig, enemyCharacterConfig);
       }
     }, self);
   }
@@ -714,7 +716,7 @@ function change_direction_up() {
   ballSprite.setVelocityY(ballVelocityY);
   changeVelocityHorizontal()
   if (myCharacterConfig.isHost){
-    socket.emit('ballMovementServer', ballSprite, ballSprite.body.velocity.x, ballSprite.body.velocity.y, ballConfig, enemyCharacterConfig);
+    //socket.emit('ballMovementServer', ballSprite, ballSprite.body.velocity.x, ballSprite.body.velocity.y, ballConfig, enemyCharacterConfig);
   }
 }
 
@@ -727,7 +729,7 @@ function change_direction_down() {
   ballSprite.setVelocityY(ballVelocityY);
   changeVelocityHorizontal();
   if (myCharacterConfig.isHost){
-    socket.emit('ballMovementServer', ballSprite, ballSprite.body.velocity.x, ballSprite.body.velocity.y, ballConfig, enemyCharacterConfig);
+    //socket.emit('ballMovementServer', ballSprite, ballSprite.body.velocity.x, ballSprite.body.velocity.y, ballConfig, enemyCharacterConfig);
   }
 
 }
@@ -959,5 +961,8 @@ export function startGameServer(){
 function ballUpdate(){
   console.log('ballUpdate');
   console.log(ballSprite.body.velocity);
+  if (myCharacterConfig.isHost){
+    socket.emit('ballMovementServer', ballSprite, ballSprite.body.velocity.x, ballSprite.body.velocity.y, ballConfig, enemyCharacterConfig);
+  }
   
 }
