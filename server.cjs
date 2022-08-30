@@ -142,9 +142,9 @@ io.on('connection', function (socket) {
     socket.broadcast.to(enemyCharacterConfig.socketID).emit('playerMovementClient', myCharacterConfig);
   });
 
-  socket.on('ballMovementServer', function (ballSprite, ballConfig, otherPlayerInfo) {
+  socket.on('ballMovementServer', function (ballSprite, velocityX, velocityY, ballConfig, otherPlayerInfo) {
     ball = ballConfig;
-    socket.broadcast.to(otherPlayerInfo.socketID).emit('ballMovementGuest', ballSprite);
+    socket.broadcast.to(otherPlayerInfo.socketID).emit('ballMovementGuest', ballSprite, velocityX, velocityY);
   });
 
   socket.on('blockDestroy', function (destroyedBlock, otherPlayerInfo) {
