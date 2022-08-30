@@ -12,6 +12,7 @@ export default class PauseScene extends Phaser.Scene {
     }
     create() {
         self = this;
+        self.cameras.main.fadeIn(3000, 0, 0, 0)
         pauseText = self.physics.add.sprite(0, 0, 'title_your_opponent_left').setOrigin(0,0)
        
     }

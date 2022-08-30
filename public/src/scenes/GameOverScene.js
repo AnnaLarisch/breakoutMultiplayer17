@@ -27,6 +27,8 @@ export default class GameOverScene extends Phaser.Scene {
     }
     create() {
         self = this;
+        self.cameras.main.fadeIn(3000, 0, 0, 0)
+
 
         game_over_black_screen = self.physics.add.sprite(0, 0, "black_screen").setOrigin(0,0);
         title_game_over = self.physics.add.sprite(0, 50, "title_game_over").setOrigin(0,0);

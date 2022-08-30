@@ -2,6 +2,7 @@ import GameScene from './scenes/GameScene.js';
 import PauseScene from './scenes/PauseScene.js';
 import StartScene from './scenes/StartScene.js';
 import GameOverScene from './scenes/GameOverScene.js';
+import CreditsScene from './scenes/CreditsScene.js';
 import UIScene from './scenes/UIScene.js';
 
 
@@ -38,7 +39,7 @@ var config = {
         gravity: { y: 0 }
       }
     },
-    scene: [GameScene, PauseScene, GameOverScene, StartScene, UIScene]
+    scene: [GameScene, PauseScene, GameOverScene, StartScene, UIScene, CreditsScene]
   };
 
 var game = new Phaser.Game(config);

@@ -30,6 +30,8 @@ export default class UIScene extends Phaser.Scene {
 
     }
     update() {
+      //self.scene.get('UIScene').scene.bringToTop();
+
       if (self.scale.isFullscreen){
         button_fullscreen.setTexture("button_fullscreen")
       }

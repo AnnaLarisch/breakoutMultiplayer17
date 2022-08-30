@@ -178,11 +178,20 @@ io.on('connection', function (socket) {
   socket.on('deletePowerUpServer', function (powerUp, otherPlayerInfo){
     socket.broadcast.to(otherPlayerInfo.socketID).emit('deletePowerUp', powerUp);
   });
+  socket.on('guestCollisionServer', function (otherPlayerInfo, ball){
+    socket.broadcast.to(otherPlayerInfo.socketID).emit('guestCollision', ball);
+  });
+  socket.on('deleteThunderSphereServer', function (otherPlayerInfo){
+    socket.broadcast.to(otherPlayerInfo.socketID).emit('deleteThunderSphere');
+  });
+  socket.on('enableCollsionGuestServer', function (otherPlayerInfo){
+    socket.broadcast.to(otherPlayerInfo.socketID).emit('enableCollsionGuest');
+  });
 });
 
 
 // Server listens on port 80 for join requests
-//helo
+// use 8081 fpr localhost testing and 80 for heroku server testing
 
 const PORT = process.env.PORT || 80;
 

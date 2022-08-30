@@ -33,9 +33,11 @@ var powerUpBatteryGuestCooldown = 5;
 
 
 var gameOver;
+var playerSpeed;
 
 
-var maxVelocity = 1000;
+var maxVelocity = 500;
+var spawnVelocity = 150;
 var ballVelocityY = 150;
 
 var planet_hero;
@@ -61,6 +63,22 @@ var powerUpList;
 
 var powerUpAtGuestCounter = 0;
 var powerUpGuestList = [];
+var thunderBallOne;
+var thunderBallTwo;
+var powerUpThunderActive = false;
+var thunderSphere;
+var onlyOnce = true;
+
+var pointerLocationX = 0;
+var myCharacterSpriteLocationX = 0;
+
+var alphaRot = 0;
+var betaRot = 0;
+var gammaRot = 0;
+var alphaAcc = 0;
+var betaAcc = 0;
+var gammaAcc = 0;
+var gammaRotNeutral = 0;
 
 
 // GAME OBEJCT VARIABLES
@@ -119,6 +137,8 @@ export default class GameScene extends Phaser.Scene {
     // Game Assets
 
     this.load.image('energy_sphere_basic', 'assets/GameScene/energy_sphere_basic.png')
+    this.load.image('energy_sphere_thunder', 'assets/GameScene/energy_sphere_thunder.png')
+    this.load.image('background', 'assets/Background/background.png')
 
     this.load.image('ship_large_blue', 'assets/GameScene/ship_large_blue.png')
     this.load.image('ship_large_blue_ftl_mode', 'assets/GameScene/ship_large_blue_ftl_mode.png')
@@ -155,6 +175,10 @@ export default class GameScene extends Phaser.Scene {
     self = this;
     socket = io();
 
+    // Gyroscope default
+    gammaRotNeutral = gammaRot;
+
+
     // Scene Management
     self.scene.launch("StartScene");
     self.scene.bringToTop("StartScene");
@@ -162,32 +186,29 @@ export default class GameScene extends Phaser.Scene {
     self.scene.bringToTop("UIScene");
     self.scene.setVisible(false);
 
-    // Randomly choose player with first serve
-    if (getRandomInt(0, 1) == 0){
-      hostServe = true;
-    }
-    else{
-      guestServe = true;
-    }
+   
 
 
     // Place gameobjects
 
 
+    var background = self.physics.add.sprite(0, 0, 'background').setOrigin(0,0);
 
     myCharacterSprite = self.physics.add.sprite(CONFIG.DEFAULT_SPAWN_X_HOST, CONFIG.DEFAULT_SPAWN_Y_HOST, 'ship_large_blue').setOrigin(0,0).setScale(0.5);
     myCharacterSprite.setCollideWorldBounds(true);
     myCharacterSprite.setImmovable(true);
+  
 
     enemyCharacterSprite = self.physics.add.sprite(CONFIG.DEFAULT_SPAWN_X_GUEST, CONFIG.DEFAULT_SPAWN_Y_GUEST, 'ship_large_red').setOrigin(0,0).setScale(0.5);
     enemyCharacterSprite.setCollideWorldBounds(true);
     enemyCharacterSprite.setImmovable(true);
 
+
     ballSprite = self.physics.add.sprite(myCharacterSprite.x +30 , myCharacterSprite.y + 80, 'energy_sphere_basic').setOrigin(0,0).setScale(0.7);
     ballConfig.isPresent = true;
     ballSprite.setCollideWorldBounds(true);
     spawnBall();
-
+    
     planet_hero = self.physics.add.sprite(138, 5, 'planet_hero_stage_0').setOrigin(0,0).setScale(1.2).setImmovable(true).setName("planet_hero");
     planet_hero.flipY = true;
     ui_element_countdown = self.physics.add.sprite(180, 410, 'ui_element_3').setOrigin(0,0);
@@ -202,9 +223,8 @@ export default class GameScene extends Phaser.Scene {
     });
     power_up_enemy = this.physics.add.group({
     });
-    
 
-    
+        
     for (let i = 0; i < small_ship_columns; i++) {
       hero_small_ship_list[i] = [];
       enemy_small_ship_list[i] = [];
@@ -219,6 +239,16 @@ export default class GameScene extends Phaser.Scene {
     // Controls
 
     cursors = self.input.keyboard.createCursorKeys();
+    if(window.DeviceOrientationEvent){
+      window.addEventListener("deviceorientation", orientation, false);
+    }else{
+      console.log("DeviceOrientationEvent is not supported");
+    }
+    if(window.DeviceMotionEvent){
+      window.addEventListener("devicemotion", motion, false);
+    }else{
+      console.log("DeviceMotionEvent is not supported");
+    }
 
 
     // Sockets 
@@ -228,12 +258,21 @@ export default class GameScene extends Phaser.Scene {
       myCharacterConfig = myCharacter;
       enemyCharacterConfig = enemyCharacter;
       if (myCharacterConfig.isHost){
+         // Randomly choose player with first serve
+        if (getRandomInt(0, 1) == 0){
+          hostServe = true;
+        }
+        else{
+          guestServe = true;
+        }
         Global.isHost = true;
         myCharacterConfig.positionX = CONFIG.DEFAULT_SPAWN_X_HOST;
         myCharacterConfig.positionY = CONFIG.DEFAULT_SPAWN_Y_HOST;
         enemyCharacterConfig.positionX = CONFIG.DEFAULT_SPAWN_X_GUEST;
         enemyCharacterConfig.positionY = CONFIG.DEFAULT_SPAWN_Y_GUEST;
         myCharacterSprite.setTexture("ship_large_blue");
+        myCharacterSprite.body.checkCollision.up = false;
+
         enemyCharacterSprite.setTexture("ship_large_red");
       }
       else{
@@ -242,6 +281,8 @@ export default class GameScene extends Phaser.Scene {
         enemyCharacterConfig.positionX = CONFIG.DEFAULT_SPAWN_X_HOST;
         enemyCharacterConfig.positionY = CONFIG.DEFAULT_SPAWN_Y_HOST;
         myCharacterSprite.setTexture("ship_large_red");
+        myCharacterSprite.body.checkCollision.down = false;
+
         enemyCharacterSprite.setTexture("ship_large_blue");
       }
       myCharacterSprite.setPosition(myCharacterConfig.positionX, myCharacterConfig.positionY).setOrigin(0,0);
@@ -255,9 +296,19 @@ export default class GameScene extends Phaser.Scene {
       Global.connectedPlayers = Global.connectedPlayers + 1;
     });
 
+    socket.on('guestCollision', function (ball) {
+      change_direction_up();
+    });
+
+    socket.on('enableCollsionGuest', function(){
+      onlyOnce = true;
+    });
+
 
     socket.on('startGame', function (){
       setTimeout(function(){ 
+        self.scene.get("StartScene").cameras.main.fadeOut(2000, 0, 0, 0)
+        self.cameras.main.fadeIn(2000, 0, 0, 0)
         self.scene.get("StartScene").scene.setVisible(false);
         self.scene.get("StartScene").scene.setActive(false);
 
@@ -273,13 +324,18 @@ export default class GameScene extends Phaser.Scene {
 
         // Collider
 
-        self.physics.add.collider(enemyCharacterSprite, ballSprite, change_direction_up);
+        //self.physics.add.collider(enemyCharacterSprite, ballSprite, change_direction_up);
         self.physics.add.collider(myCharacterSprite, ballSprite, change_direction_down);
         self.physics.add.collider(blocks, ballSprite, destroyBlock);
         self.physics.add.collider(planet_hero, ballSprite, takeDamageHero);
         self.physics.add.collider(planet_enemy, ballSprite, takeDamageEnemy);
         self.physics.add.collider(enemyCharacterSprite, power_up_enemy, activatePowerUp);
         self.physics.add.collider(myCharacterSprite, power_up_hero, activatePowerUp);
+
+      }
+      if (!myCharacterConfig.isHost){
+        self.physics.add.collider(myCharacterSprite, ballSprite, guestCollision);
+        myCharacterSprite.body.checkCollision.down = false;
 
       }
 
@@ -291,8 +347,10 @@ export default class GameScene extends Phaser.Scene {
       gameOver = true;
       ballSprite.setActive(false);
       ballSprite.setVisible(false);
+      self.scene.get("StartScene").cameras.main.fadeOut(2000, 0, 0, 0)
       self.scene.pause("GameScene");
       setTimeout(function(){ 
+        self.scene.get("StartScene").cameras.main.fadeOut(2000, 0, 0, 0)
         self.scene.get("GameScene").scene.setVisible(false);
         self.scene.launch("GameOverScene");
         self.scene.get("GameOverScene").scene.setVisible(true);
@@ -347,6 +405,22 @@ export default class GameScene extends Phaser.Scene {
     socket.on('ballMovementGuest', function(host_ball){
       ballSprite.x = host_ball.x
       ballSprite.y = host_ball.y
+      if (ballSprite.y < 300){
+        onlyOnce = true;
+      }
+    });
+    socket.on('thunderSphereMovement', function(thunderSphereOne, thunderSphereTwo){
+      if(thunderBallOne.x == thunderSphereOne.x){
+        thunderBallOne.setActive(false).setVisible(false).disableBody();
+      }
+      if(thunderBallTwo.y == thunderSphereTwo.y){
+        thunderBallTwo.setActive(false).setVisible(false).disableBody();
+      }
+      thunderBallOne.x = thunderSphereOne.x
+      thunderBallOne.y = thunderSphereOne.y
+      thunderBallTwo.x = thunderSphereTwo.x
+      thunderBallTwo.y = thunderSphereTwo.y
+      
     });
 
     socket.on('pauseGame', function(){
@@ -399,19 +473,21 @@ export default class GameScene extends Phaser.Scene {
     socket.on('spawnPowerUp', function(powerUpList, powerUpCounter){
       while (powerUpCounter > powerUpAtGuestCounter){
         var newPowerUp = powerUpList[powerUpAtGuestCounter];
-        console.log(newPowerUp);
         powerUpGuestList.push(self.physics.add.sprite(newPowerUp.x, newPowerUp.y, newPowerUp.textureKey).setOrigin(0,0));
         powerUpAtGuestCounter ++;
       }
       for (let i = 0; i < powerUpGuestList.length; i++){
         var newPowerUp = powerUpList[i];
-        console.log(newPowerUp);
         powerUpGuestList[i].setPosition(newPowerUp.x, newPowerUp.y);
       }
     });
     socket.on('deletePowerUp', function(powerUp){
       powerUpGuestList[powerUp.name].setActive(false).setVisible(false).disableBody();
       
+    });
+
+    socket.on('deleteThunderSphere', function(){
+      ballSprite.setTexture("energy_sphere_basic")
     });
 
     socket.on('powerUpBattery', function(isHost){
@@ -461,35 +537,85 @@ export default class GameScene extends Phaser.Scene {
           }
       });
       socket.on('powerUpThunder', function(isHost){
-        if (!powerUpThunderActive){
-          
+        if (myCharacterConfig.isHost){
+          if (isHost){
+            ballVelocityY = maxVelocity;
+           }
+           else{
+            ballVelocityY = -1 * maxVelocity;
+           }
+           ballSprite.setVelocityY(ballVelocityY);
         }
+       
+       ballSprite.setTexture("energy_sphere_thunder");
+
       });
   }
 
   update() {
+    if ((powerUpBatteryHostActive && myCharacterConfig.isHost) || (powerUpBatteryGuestActive && myCharacterConfig.isGuest)) {
+      playerSpeed = CONFIG.FTL_MODE_PLAYER_SPEED;
+    }
+    else{
+      playerSpeed = CONFIG.DEFAULT_PLAYER_SPEED
+    }
 
     // Player Movement
-
-    if (cursors.left.isDown && !gameOver) {
-      if ((myCharacterConfig.isHost && powerUpBatteryHostActive) || (myCharacterConfig.isGuest && powerUpBatteryGuestActive)){
-        myCharacterSprite.setVelocityX(-600);
+    if (Global.controlType == CONFIG.KEYBOARD_CONTROL_TYPE){
+      if (cursors.left.isDown && !gameOver) {
+        myCharacterSprite.setVelocityX(-1 * playerSpeed);
+        }
+      else if (cursors.right.isDown && !gameOver) {
+        myCharacterSprite.setVelocityX(playerSpeed);
+      } 
+      else {
+        myCharacterSprite.setVelocityX(0);
       }
-      else{
-        myCharacterSprite.setVelocityX(-300);
-      }
-    } 
-    else if (cursors.right.isDown && !gameOver) {
-      if ((myCharacterConfig.isHost && powerUpBatteryHostActive) || (myCharacterConfig.isGuest && powerUpBatteryGuestActive)){
-        myCharacterSprite.setVelocityX(600);
-      }
-      else{
-        myCharacterSprite.setVelocityX(300);
-      }
-    } 
-    else {
-      myCharacterSprite.setVelocityX(0);
     }
+    else if (Global.controlType == CONFIG.TOUCH_CONTROL_TYPE){
+      this.input.on('pointerdown', function (pointer) {
+        pointerLocationX = pointer.x;
+        myCharacterSpriteLocationX = myCharacterSprite.x;
+        if (pointerLocationX < (myCharacterSpriteLocationX -20) && pointerLocationX != 0 )  
+        { 
+          myCharacterSprite.setVelocityX(-1 * playerSpeed);        
+        }
+        else if (pointerLocationX > (myCharacterSpriteLocationX +20) && pointerLocationX != 0)
+        {
+          myCharacterSprite.setVelocityX(playerSpeed);        
+        }
+        else
+        {
+          myCharacterSprite.setVelocityX(0);
+          pointerLocationX = 0;
+        }
+      });
+      this.input.on('pointerup', function (pointer) {
+          myCharacterSprite.setVelocityX(0);
+          pointerLocationX = 0;
+      });
+
+    }
+    else if (Global.controlType == CONFIG.GYROSCOPE_CONTROL_TYPE){
+      if ((gammaRot >= gammaRotNeutral- 5) && (gammaRot <= gammaRotNeutral + 5)){
+        myCharacterSprite.setVelocityX(0);
+      }
+      else if (!Global.gameOver){
+        var playerVelocity = (gammaRot - gammaRotNeutral) * 10;
+        if (playerVelocity > playerSpeed){
+          playerVelocity = playerSpeed;
+        }
+        if ((powerUpBatteryHostActive && myCharacterConfig.isHost) || (powerUpBatteryGuestActive && myCharacterConfig.isGuest)) {
+          myCharacterSprite.setVelocityX(playerVelocity * 2);  
+        }
+        else{
+          myCharacterSprite.setVelocityX(playerVelocity);  
+        }
+      }
+
+    }
+
+    
     
     if (oldPositionX != myCharacterSprite.x){
       myCharacterConfig.positionX = myCharacterSprite.x;
@@ -498,7 +624,7 @@ export default class GameScene extends Phaser.Scene {
     }
     oldPositionX = myCharacterSprite.x;
 
-  
+
 
     // Getting the game started
     if (myCharacterConfig.isHost){
@@ -510,9 +636,9 @@ export default class GameScene extends Phaser.Scene {
     for (let i = 0; i < power_up_counter; i++){
       if (power_up_list[i].x < -50 || power_up_list[i].x > 900){
         socket.emit('deletePowerUpServer', power_up_list[i], enemyCharacterConfig);
-        powerUp.setActive(false);
-        powerUp.setVisible(false);
-        powerUp.disableBody();
+        power_up_list[i].setActive(false);
+        power_up_list[i].setVisible(false);
+        power_up_list[i].disableBody();
       }
     }
 
@@ -542,7 +668,7 @@ function launchBallHost(){
       hostServe = false;
       ballLaunched = true;
       ballCanBeLaunched = false;
-      ballVelocityY = -100;
+      ballVelocityY = -1* spawnVelocity;
       ballSprite.setVelocityY(ballVelocityY);
       changeVelocityHorizontal();
     }
@@ -552,7 +678,7 @@ function launchBallHost(){
       if (!ballLaunched){
         ballLaunched = true;
         guestServe = false;
-        ballVelocityY = 100;
+        ballVelocityY = spawnVelocity;
         ballSprite.setVelocityY(ballVelocityY);
         changeVelocityHorizontal();
       }
@@ -573,19 +699,21 @@ function launchBallGuest(){
 function change_direction_up() {
   ballVelocityY = ballVelocityY * -1
   if(ballVelocityY < 0 && Math.abs(ballVelocityY) < maxVelocity){
-    ballVelocityY = ballVelocityY - 50;
+    ballVelocityY = ballVelocityY - 25;
   }
   ballSprite.setVelocityY(ballVelocityY);
   changeVelocityHorizontal()
 }
 
 function change_direction_down() {
+  
   ballVelocityY = ballVelocityY * -1
   if(ballVelocityY > 0 && Math.abs(ballVelocityY) < maxVelocity){
-    ballVelocityY = ballVelocityY + 50;
+    ballVelocityY = ballVelocityY + 25;
   };
   ballSprite.setVelocityY(ballVelocityY);
   changeVelocityHorizontal();
+
 }
 
 function changeVelocityHorizontal(){
@@ -600,7 +728,6 @@ function changeVelocityHorizontal(){
   else{
     ballVelocityX = ballSprite.body.velocity.x
   }
-  console.log(ballVelocityX);
   ballSprite.setVelocityX(ballVelocityX);
 }
 
@@ -613,29 +740,28 @@ function getRandomInt(min, max){
 }
 
 function destroyBlock(ballSprite, block){
-  block.setVisible(false);
-  block.setActive(false);
-  block.disableBody();
-  if (myCharacterConfig.isHost){
-    socket.emit('blockDestroy', block, enemyCharacterConfig );
-  }
   if (block.name.includes("guest")){
     change_direction_up()
   }
   else{
     change_direction_down()
   }
-  if (getRandomInt(0,4) == 0){
+  block.setVisible(false);
+  block.setActive(false);
+  block.disableBody();
+  if (myCharacterConfig.isHost){
+    socket.emit('blockDestroy', block, enemyCharacterConfig );
+  }
+  
+  if (getRandomInt(0,3) == 0){
     var powerUpChoice = powerUpList[getRandomInt(0,2)];
     if (block.name.includes("guest")){
-      change_direction_up()
       power_up_list[power_up_counter] = power_up_hero.create(block.x, block.y, (powerUpChoice + "_blue")).setOrigin(0,0);
       power_up_list[power_up_counter].setVelocityY(-100);
       
   
     }
     else{
-      change_direction_down()
       power_up_list[power_up_counter] = power_up_enemy.create(block.x, block.y, (powerUpChoice + "_red")).setOrigin(0,0);
       power_up_list[power_up_counter].setVelocityY(+100);
     }
@@ -659,6 +785,9 @@ function takeDamageEnemy(heart, c_ball){
 }
 
 function spawnBall(){
+  socket.emit('powerUpShieldServer', true);  
+  socket.emit('powerUpShieldServer', false);  
+
   if (hostServe){
     ballSprite.setPosition(myCharacterSprite.x + 60, myCharacterSprite.y + 80 ).setOrigin(0,0);
   }
@@ -670,10 +799,17 @@ function spawnBall(){
   ballLaunched = false;
   ballCanBeLaunched = false;
   ballSprite.setTexture("energy_sphere_basic");
+  socket.emit('deleteThunderSphereServer', enemyCharacterConfig);
   ballSprite.setBounce(0.5, 0.5);
   ballSprite.setCollideWorldBounds(true);
   ballSprite.setVelocityY(0);
   ballSprite.setVelocityX(0);
+  for (let i = 0; i < power_up_counter; i++){
+    socket.emit('deletePowerUpServer', power_up_list[i], enemyCharacterConfig);
+    power_up_list[i].setActive(false);
+    power_up_list[i].setVisible(false);
+    power_up_list[i].disableBody();
+  }
 }
 
 function onEvent ()
@@ -758,6 +894,7 @@ function activatePowerUp(characterSprite, powerUp){
       socket.emit('powerUpThunderServer', true);  
       console.log("power_up_thunder_blue")
       break;
+      
 
     case "power_up_thunder_red":
       socket.emit('powerUpThunderServer', false);  
@@ -773,10 +910,28 @@ function activatePowerUp(characterSprite, powerUp){
   powerUp.setVisible(false);
   powerUp.disableBody();
 
+}
 
+function guestCollision(myCharacter, ball){
+if (onlyOnce){
+  socket.emit('guestCollisionServer', enemyCharacterConfig, ball);
+  onlyOnce= false;
+}
 
 }
 
+
+function orientation(event){
+  alphaRot = event.alpha;
+  betaRot = event.bet;
+  gammaRot = event.gamma;
+}
+
+function motion(event){
+  alphaAcc = event.accelerationIncludingGravity.x;
+  betaAcc = event.accelerationIncludingGravity.y;
+  gammaAcc = event.accelerationIncludingGravity.z;
+}
 
 export function startGameServer(){
   socket.emit('startGameServer', myCharacterConfig)
