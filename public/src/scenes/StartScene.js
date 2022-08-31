@@ -100,9 +100,31 @@ export default class StartScene extends Phaser.Scene {
         self.scene.get('CreditsScene').scene.setVisible(true);
       }, this);
 
-    }
+
+      checkOriention(self.scale.orientation);
+
+      self.scale.on('orientationchange', checkOriention, this);
+      self.scale.lockOrientation("portrait");
+
+
+
+}
+
+
     update() {
       playersConnected.setText('Connected: ' + Global.connectedPlayers + '/2')
     }
 
 }
+
+function checkOriention (orientation)
+{
+    if (orientation === Phaser.Scale.PORTRAIT)
+    {
+        console.log("Orientation: Portrait Mode");
+    }
+    else if (orientation === Phaser.Scale.LANDSCAPE)
+    {
+      console.log("Orientation: Landscape Mode");
+    }
+    }
