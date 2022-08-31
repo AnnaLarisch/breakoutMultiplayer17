@@ -105,7 +105,7 @@ export default class StartScene extends Phaser.Scene {
 
       self.scale.on('orientationchange', checkOriention, this);
       self.scale.lockOrientation("portrait");
-
+      screen.orientation.lock("portrait-primary");
 
 
 }
