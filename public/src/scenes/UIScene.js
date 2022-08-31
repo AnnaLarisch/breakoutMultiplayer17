@@ -22,8 +22,9 @@ export default class UIScene extends Phaser.Scene {
         }
         else{
           this.scale.startFullscreen();
-
           button_fullscreen.setTexture("button_windowed")
+          screen.orientation.lock("portrait-primary");
+
         }
       
     }, this);
