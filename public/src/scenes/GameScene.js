@@ -959,8 +959,6 @@ export function startGameServer(){
 }
 
 function ballUpdate(){
-  console.log('ballUpdate');
-  console.log(ballSprite.body.velocity);
   if (myCharacterConfig.isHost){
     socket.emit('ballMovementServer', ballSprite, ballSprite.body.velocity.x, ballSprite.body.velocity.y, ballConfig, enemyCharacterConfig);
   }

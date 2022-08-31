@@ -21,7 +21,7 @@ var config = {
     scale:{
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
-      width: CONFIG.DEFAULT_WIDTH,
+      /*width: CONFIG.DEFAULT_WIDTH,
       height: CONFIG.DEFAULT_HEIGHT,
       min: {
         width: baseSize[0],
@@ -30,7 +30,7 @@ var config = {
       max: {
         width: 0,
         height: 0
-      }
+      } */
     },
     physics: {
       default: 'arcade',

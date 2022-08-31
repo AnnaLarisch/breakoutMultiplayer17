@@ -18,10 +18,10 @@ export default class UIScene extends Phaser.Scene {
         button_fullscreen.on('pointerup', function (pointer){
         if (self.scale.isFullscreen) {
           button_fullscreen.setTexture("button_fullscreen")
-          self.scale.stopFullscreen();
+          this.scale.stopFullscreen();
         }
         else{
-          self.scale.startFullscreen();
+          this.scale.startFullscreen();
 
           button_fullscreen.setTexture("button_windowed")
         }
