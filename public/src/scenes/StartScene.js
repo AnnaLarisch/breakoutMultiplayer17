@@ -59,6 +59,8 @@ export default class StartScene extends Phaser.Scene {
 
       button_ready = self.physics.add.sprite(120, 280, 'button_ready').setOrigin(0,0).setInteractive();
       button_ready.on('pointerup', function (pointer){
+          self.scale.startFullscreen();
+          screen.orientation.lock("portrait-primary");
           button_ready.setTexture('button_ready_active');
           ui_element_waiting_for_opponent = self.physics.add.sprite(0, 420, 'ui_element_waiting_for_opponent').setOrigin(0,0);
           startGameServer();
