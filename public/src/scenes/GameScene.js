@@ -36,7 +36,7 @@ var gameOver;
 var playerSpeed;
 
 
-var maxVelocity = 500;
+var maxVelocity = 400;
 var spawnVelocity = 150;
 var ballVelocityY = 150;
 
@@ -194,17 +194,17 @@ export default class GameScene extends Phaser.Scene {
 
     var background = self.physics.add.sprite(0, 0, 'background').setOrigin(0,0);
 
-    myCharacterSprite = self.physics.add.sprite(CONFIG.DEFAULT_SPAWN_X_HOST, CONFIG.DEFAULT_SPAWN_Y_HOST, 'ship_large_blue').setOrigin(0,0).setScale(0.5);
+    myCharacterSprite = self.physics.add.sprite(CONFIG.DEFAULT_SPAWN_X_HOST, CONFIG.DEFAULT_SPAWN_Y_HOST, 'ship_large_blue').setOrigin(0,0).setScale(0.4);
     myCharacterSprite.setCollideWorldBounds(true);
     myCharacterSprite.setImmovable(true);
   
 
-    enemyCharacterSprite = self.physics.add.sprite(CONFIG.DEFAULT_SPAWN_X_GUEST, CONFIG.DEFAULT_SPAWN_Y_GUEST, 'ship_large_red').setOrigin(0,0).setScale(0.5);
+    enemyCharacterSprite = self.physics.add.sprite(CONFIG.DEFAULT_SPAWN_X_GUEST, CONFIG.DEFAULT_SPAWN_Y_GUEST, 'ship_large_red').setOrigin(0,0).setScale(0.4);
     enemyCharacterSprite.setCollideWorldBounds(true);
     enemyCharacterSprite.setImmovable(true);
 
 
-    ballSprite = self.physics.add.sprite(myCharacterSprite.x +30 , myCharacterSprite.y + 80, 'energy_sphere_basic').setOrigin(0,0).setScale(0.7);
+    ballSprite = self.physics.add.sprite(myCharacterSprite.x +30 , myCharacterSprite.y + 80, 'energy_sphere_basic').setOrigin(0,0).setScale(0.4);
     ballConfig.isPresent = true;
     ballSprite.setCollideWorldBounds(true);
     spawnBall();
