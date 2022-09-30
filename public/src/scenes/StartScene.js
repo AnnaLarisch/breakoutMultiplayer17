@@ -92,6 +92,7 @@ export default class StartScene extends Phaser.Scene {
         Global.controlType = CONFIG.TOUCH_CONTROL_TYPE; 
       }, this);
 
+      
 
       button_info = self.physics.add.sprite(330, 790, 'button_info').setOrigin(0,0).setInteractive();;
       button_info.on('pointerup', function (pointer){
